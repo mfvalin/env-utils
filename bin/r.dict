@@ -1,0 +1,13 @@
+eval `cclargs $0 "[standard file dictionary]" \
+     -n+ "," "[Nom de la variable]" \
+     -t+ ","  "[Type de variable]" \
+     ++ $* `
+echo definition de nom=$n, type=$t
+if [ "$n" != "," ]
+then
+grep "^$n" $AFSISIO/datafiles/constants/dict.data
+fi
+if [ "$t" != "," ]
+then
+grep "^--$t" $AFSISIO/datafiles/constants/dict.data
+fi

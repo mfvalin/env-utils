@@ -1,0 +1,3 @@
+#!/bin/bash
+echo wa_server2 $1 $2 @$3 | ssh $4 'bash --login 1>${HOME}/.wa_server2_stdout_stderr 2>${HOME}/.wa_server2_stdout_stderr'
+

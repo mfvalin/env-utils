@@ -1,0 +1,24 @@
+#!/bin/ksh
+if rcp $*
+then
+#  echo rcp OK
+  exit 0
+fi
+echo retrying rcp that failed with code=$?
+if rcp $*
+then
+  echo rcp OK
+  exit 0
+fi
+echo retrying rcp that failed with code=$?
+if rcp $*
+then
+  echo rcp OK
+  exit 0
+fi
+echo retrying rcp that failed with code=$?
+if rcp $*
+then
+  echo rcp OK
+  exit 0
+fi

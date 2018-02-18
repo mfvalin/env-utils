@@ -1,0 +1,8 @@
+#
+# Ce script enleve les espaces en bout de ligne.
+#
+sed s/'[ ]*$'/' '/ < $1 > $1.zeroz.blank
+mv $1.zeroz.blank $1
+echo ' '
+echo ' Les espaces en bouts de ligne ont ete supprimes de' $1
+echo ' '

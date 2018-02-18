@@ -1,0 +1,78 @@
+#dotted script
+#. Um_set -mModelName -vVersion
+#ex: . Um_set -mGEMDM -v1.9.9
+#
+#set -x
+Model=NoModel
+unset Version  || true
+unset ArCh  || true
+unset ArChS  || true
+unset BaSeArCh  || true
+ItEm=scripts
+while  [[ "$1" != "" ]]
+do
+  case $1 in
+   -a)  ArCh="\\/${ARCH}" ; ArChS="/${ARCH}" ; BaSeArCh=$BASE_ARCH ;;
+   -m*) Model=${1#-m} ;;
+   -v*) Version=${1#-v} ;;
+   -d*) ItEm=${1#-d} ;;
+   -h*) ItEm=help ;;
+  esac
+  shift
+done
+#
+if [[ "${ItEm}" = "help" ]]
+then
+  echo Usage: . Um_set -mModelName -v[Version] [-dItem] [-a]
+  echo Ex:    . Um_set -mGEMDM -v1.9.9 -dbin -a
+else
+if [[ -d ${ARMNLIB:-/usr/local/env/armnlib}/modeles/${Model} ]]
+then
+  if [[ "$BaSeArCh" = '' ]]
+  then
+    NewPath=`echo $PATH | sed "s:${ARMNLIB:-/usr/local/env/armnlib}/modeles/${Model}/v_[^/]*/${ItEm}[/]*::" | \
+                          sed "s:$HOME/modeles/${Model}/v_[^/]*/${ItEm}[/]*::" |  sed 's/::/:/' | sed 's/:$//'`
+  else
+    NewPath=`echo $PATH | sed "s:${ARMNLIB:-/usr/local/env/armnlib}/modeles/${Model}/[^/]*/${ItEm}/${BaSeArCh}[^\:]*::" | \
+                          sed "s:$HOME/modeles/${Model}/[^/]*/${ItEm}/${BaSeArCh}[^\:]*::" |  sed 's/::/:/' | sed 's/:$//'`
+  fi
+  if [[ "$Version" != "" ]]
+  then
+    if [[ -d $HOME/modeles/${Model}/v_${Version}/${ItEm}/${BaSeArCh} ]]
+    then
+      ArChS="/${BaSeArCh}" ; ArCh="\\/${BaSeArCh}"
+    fi
+    if [[ -d $HOME/modeles/${Model}/v_${Version}/${ItEm}${ArChS} ]]
+    then
+      echo  "adding  User custom executables for Model=$Model, Version=$Version component ${ItEm}${ArChS} to PATH"
+      echo  "(\$HOME/modeles/${Model}/v_${Version}/${ItEm}${ArChS})"
+      export PATH=$NewPath:$HOME/modeles/${Model}/v_${Version}/${ItEm}${ArChS}
+      export NewPath=$PATH
+    fi
+    if [[ -d ${ARMNLIB:-/usr/local/env/armnlib}/modeles/${Model}/v_${Version}/${ItEm}/${BaSeArCh} ]]
+    then
+      ArChS="/${BaSeArCh}"  ; ArCh="\\/${BaSeArCh}"
+    fi
+    if [[ -d ${ARMNLIB:-/usr/local/env/armnlib}/modeles/${Model}/v_${Version}/${ItEm}${ArChS} ]]
+    then
+      echo  "adding  Model=$Model, Version=$Version component ${ItEm}${ArChS} to PATH"
+      echo  "(\$ARMNLIB/modeles/${Model}/v_${Version}/${ItEm}${ArChS})"
+      export PATH=$NewPath:${ARMNLIB:-/usr/local/env/armnlib}/modeles/${Model}/v_${Version}/${ItEm}${ArChS}
+    else
+      echo "Um_set.dot ERROR: ${ARMNLIB:-/usr/local/env/armnlib}/modeles/${Model}/v_${Version}/${ItEm}${ArChS} not found"
+    fi
+  else
+    echo "removing Model=$Model (\$ARMNLIB/modeles/${Model}/v_ . . . /${ItEm}${ArChS}) from PATH"
+    export PATH=$NewPath
+  fi
+else
+  echo "Um_set.dot ERROR: model '${Model}' not found "
+fi
+fi
+unset Model  || true
+unset Version  || true
+unset ArCh  || true
+unset ArChS  || true
+unset ItEm  || true
+unset BaSeArCh  || true
+#set +x

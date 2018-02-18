@@ -1,0 +1,43 @@
+#!/bin/bash
+#set -x
+filename=$1
+machines=$2
+filepaths=$3
+all=$4
+success=0
+if [ "$filepaths" != "" ]
+then
+  set $filepaths
+  filepath=$1
+  for machine in $machines
+  do
+  if rcp $filename $machine:$filepath
+  then
+    rm `true_path $filename`
+    echo "`date` $filename moved to $machine:$filepath" >> $HOME/.rcprm_log
+    success=`expr $success + 1`
+    if [ "$all" != "all" ]
+    then
+      exit 0
+    fi
+  else
+    echo "`date` $filename transfer failed to $machine:$filepath" >> $HOME/.rcprm_log
+  #  exit 1
+  fi
+  if [ "$1" != "" ]
+  then
+     filepath=$1
+     shift
+  fi
+  done
+  if [ $success = "0" ]
+  then
+    echo "all transfers have failed  for machines=$machines"
+    exit 1
+  else
+    echo "$success transfer(s) have been successful"
+  fi
+else
+  echo "usage : r.rcprm local_file_name machine remote_file_name [all]"
+  exit 1
+fi

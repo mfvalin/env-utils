@@ -1,0 +1,189 @@
+
+# script servant a faire l'impression d'un manuel en ligne man page
+# usage:   raspoutine manuel [-er [expression]] [-avant] [-P [imprimante]]
+#                             [-dppf]
+# auteur: James Caveen
+
+final_man()
+{
+  if(test "$1" = "dppf")
+  then
+      pr -m -w160 -t -e $2 $3 > "$TMPDIR"/$$_man_final
+  else
+      cat $2 > "$TMPDIR"/$$_man_final
+  fi
+}
+
+imprime()
+{
+   if(test "$1" = "dppf")
+   then
+           if(test "$2" = "lc890")
+                then cat "$TMPDIR"/$$_man_final |text2ps -o1 -r -s7 -w160 -l60|\
+                rsh rpnws03 /usr/local/bin/lpr -Plc890
+           elif(test "$2" = "qms")
+                then cat "$TMPDIR"/$$_man_final |text2ps -o2 -r -s7 -w160 -l60|\
+                rsh rpnws09 /usr/local/bin/lpr -Pqms
+           else
+                cat "$TMPDIR"/$$_man_final |text2ps -o2 -r -s7 -w160 -l60|\
+                rsh rpnws09 /usr/local/bin/lpr -Pqms
+           fi 
+   elif(test "$2" = "lc860")
+      then lc860 "$TMPDIR"/$$_man_final
+   elif(test "$2" = "lc890")
+      then lc890 "$TMPDIR"/$$_man_final
+   else
+      cat "$TMPDIR"/$$_man_final | print -P $2 -ban $3 manuel $4
+   fi
+   /bin/rm "$TMPDIR"/$$_man_final "$TMPDIR"/$$_monman $_manuel
+   exit 0
+}
+       
+
+saut()
+{
+er=$1
+avant=$2
+if(test "$avant" = "non")
+   then  posit=a
+else
+         posit=i
+fi
+
+cat > "$TMPDIR"/$$_direct <<+
+/$er/ $posit\\
+
++
+
+sed -f "$TMPDIR"/$$_direct
+/bin/rm "$TMPDIR"/$$_direct
+}
+
+eval `cclargs $0 "[impression d'un manuel 'man page']" \
+    -sx3man "man" "sx3man" "[si sx3man=sx3man, on utilise sx3man au lieu de man]"\
+    -P "rpn557p" "rpn557p" "[donnez un nom d'imprimante\ne.g. rpn512, rpn540, lc890, qms]"\
+    -dppf "normal" "dppf" "[si dppf=dppf on imprime deux feuilles par page.\nPour imprimantes laser seulement]"\
+    -d "" "oui" "[si d=oui, la date d'impression sera incluse dans l'entete\nPour imprimante postscript seulement]"\
+    -nops   " "  "nops" "[si nops=nops, l'impression ne se fera pas en mode postscript]"\
+    -er " " "null" "[expression pour insertion des sauts de page (Mode nops). Raspoutine\ntrouvera de lui-meme: [Pp]age n, [Pp]age (n), Sun Release, - n -]"\
+    -avant "non" "oui" "[si avant=oui, on insere le saut de page sur la ligne\nprecedant celle contenant l'expression reguliere (Mode nops)]"\
+    ++ $*`
+
+if(test "$#" = "0")
+  then
+     echo 's.v.p. fournir le nom de la commande pour laquelle'
+     echo '       on desire faire imprimer le manpage'
+     exit 1
+ fi 
+
+if (test "$nops" = "nops")
+then
+lemanuel=$1
+$sx3man $lemanuel | sed 's/.//g' > "$TMPDIR"/$$_monman
+
+if(test "$dppf" = "dppf")
+then
+     _manuel="$TMPDIR/$$_impair $TMPDIR/$$_pair"
+else
+     _manuel="$TMPDIR/$$_impair"
+fi
+
+if(test "$er" = " ")
+then
+     set `grep '^[	 ]*[Pp]age[^a-zA-Z][()0-9].*' "$TMPDIR"/$$_monman | wc -l`
+     if(test "$1" != "0")
+     then
+          cat "$TMPDIR"/$$_monman |\
+          pr -e -t |\
+          saut '^[	 ]*[Pp]age[^a-zA-Z][()0-9].*' $avant|\
+          outine  $_manuel
+          final_man $dppf $_manuel 
+          imprime  $dppf $P $USER $lemanuel
+     fi
+     set `grep '^Sun Release' "$TMPDIR"/$$_monman | wc -l`
+     if(test "$1" != "0")
+     then
+          cat "$TMPDIR"/$$_monman |\
+          pr -e -t |\
+          saut '^Sun Release' $avant |\
+          outine $_manuel
+          final_man $dppf $_manuel 
+          imprime  $dppf $P $USER $lemanuel
+     fi
+     set `grep '^[	 ]*\-[0-9 ].*\-' "$TMPDIR"/$$_monman | wc -l`
+     if(test "$1" != "0")
+     then
+          cat "$TMPDIR"/$$_monman |\
+          pr -e -t |\
+          saut '^[	 ]*\-[0-9 ].*\-' $avant |\
+          outine $_manuel
+          final_man $dppf $_manuel 
+          imprime  $dppf $P $USER $lemanuel
+     fi
+     set `grep '^[	 ]*SUPER-UX' "$TMPDIR"/$$_monman | wc -l`
+     if(test "$1" != "0")
+     then
+          cat "$TMPDIR"/$$_monman |\
+          pr -e -t |\
+          saut '^[	 ]*SUPER-UX' $avant |\
+          outine $_manuel
+          final_man $dppf $_manuel 
+          imprime  $dppf $P $USER $lemanuel
+     fi
+     
+#     pas de delimiteur de page on n'imprime pas
+      echo "On n'a pas trouve de delimiteur de page !"
+      echo "Vous devez utiliser l'option -er pour faire imprimer ce manuel"
+      echo " raspoutine manuel -er (Pour impression en continue)"
+      echo " raspoutine manuel -er expression (expression est le delimiteur)"
+      exit 1
+elif(test "$er" = "null")
+     then
+#    pas  de delimiteur de page, on imprime en continue
+     cat "$TMPDIR"/$$_monman |\
+     pr -e -t > $_manuel
+     final_man $dppf $_manuel 
+     imprime  $dppf $P $USER $lemanuel
+
+else
+# l'usager a donne une expression a utuiloser comme delimiteur de page
+    cat "$TMPDIR"/$$_monman |\
+    pr -e -t |\
+    saut "$er" $avant |\
+    outine $_manuel
+    final_man $dppf $_manuel 
+    imprime  $dppf $P $USER $lemanuel
+fi
+else
+
+#on envoie sur une imprimante postscript
+
+$sx3man $1 > "$TMPDIR"/$$_manuel
+if (test "$dppf" = "dppf")
+then
+     npag=""
+else
+     npag="-p"
+fi
+
+if (test "$d" = "oui")
+then
+ ladate=`date +%D | sed 's/\//-/g'`
+ entete="$1 -  $ladate"
+else
+ entete="$1"
+fi
+# valider le nom de l'imprimante
+if(test "$P" = "qms")
+then
+    P=rpn512
+elif (test "$P" = "lc890")
+then
+    P=rpn557p
+fi
+nlignes=`lpage "$TMPDIR"/$$_manuel`
+cat "$TMPDIR"/$$_manuel | a2ps -H"$entete" -l$nlignes $npag -P"$P"
+
+
+fi
+/bin/rm $TMPDIR/$$_*
