@@ -212,12 +212,13 @@ mpiexec_Linux_launch() {
 #   transformer ${MY_NODEFILE} en map file pour OpenMPI et en host file pour Mpich2
     node_to_rank ${MY_NODEFILE} ${ThreadsInWorld[${MpiCommWorld}]} ${ThinBy} > ${MY_RANKFILE} || { LaunchStatus="$LaunchStatus ${MpiCommWorld}" ; break; }
     EXTRA_MPI_PARMS=""
-    [[ -n $RANKFILE_PBS ]] && cp $RANKFILE_PBS ${MY_RANKFILE} && EXTRA_MPI_PARMS="${EXTRA_MPI_PARMS} --rankfile ${MY_RANKFILE}"
+    [[ -n $RANKFILE_PBS ]] && cp $RANKFILE_PBS ${MY_RANKFILE} && EXTRA_MPI_PARMS="${EXTRA_MPI_PARMS} --rankfile ${MY_RANKFILE} --oversubscribe "
     [[ -n $NODEFILE_PBS ]] && cp $NODEFILE_PBS ${MY_NODEFILE}
 #    cat ${MY_RANKFILE}
     echo "INFO: ===== $(cat ${MY_NODEFILE} | wc -l) host(s) in  ${Launcher} World $MpiCommWorld ====="
     cat ${MY_NODEFILE}
     list_message
+    echo "=== EXTRA_MPI_PARMS=${EXTRA_MPI_PARMS} ==="
     if [[ $Launcher == OpenMPI ]] ; then #   pass environment variables (only names starting with letter or digit) (only for OpenMPI)
 #      EXTRA_MPI_PARMS="-cpus-per-proc ${ThreadsInWorld[${MpiCommWorld}]}"
       EXTRA_MPI_PARMS="${EXTRA_MPI_PARMS} $(s.prefix '-x ' $(env | grep -v "[']" | grep -v '"'  | grep -v '^BASH_'  | grep  '^[a-zA-Z0-9]' | sed 's/=.*//' | sort ))"
@@ -632,8 +633,9 @@ wait_for() {
 #Version="1.1.30  2017/12/21"  # Add -ddt option for XC40. Improve infiniband performance
 #Version="1.1.30a 2018/03/19"  # Reverted back to sysv shmem mca
 #Version="1.1.30b 2018/03/20"  # added rudimentary mpi launch failure detection
+#Version="1.1.30c 2018/04/10"  # added --oversubscribe if forcing ranks, print EXTRA_MPI_PARMS
 true
-Version="1.1.30b 2018/03/20"  # added rudimentary mpi launch failure detection
+Version="1.1.30c 2018/04/10"  # added --oversubscribe if forcing ranks, print EXTRA_MPI_PARMS
 echo "INFO: ${0##*/} version $Version ( /bin/ksh93 )"
 MY_NODEFILE=${PARALLEL_NODEFILE:-${GECOSHEP_HOSTS_FILE:-${GECOSHEP_HOSTFILE:-${LOADL_HOSTFILE:-${PBS_NODEFILE:-${HOME}/.PBS_NODEFILE}}}}}
 [[ ! -f "${MY_NODEFILE}" ]] && \
@@ -1185,7 +1187,7 @@ do
   ((npex=${PeInWorld[${MpiCommWorld}]}/${MembersInWorld[${MpiCommWorld}]}))
   cat <<EOT >${ParallelScript}.${MpiCommWorld}
 #!/bin/ksh93
-ulimit -s unlimited
+#ulimit -s unlimited
 [[ -n "${debug}" ]] && set -x
 #
 export MP_CHILD=\${MP_CHILD:-\${PMI_RANK:-\${OMPI_COMM_WORLD_RANK:-\${ALPS_APP_PE}}}}  # poe/mpich2/openmpi/CrayALPS
